@@ -3,7 +3,7 @@
   "on": {
     "workflow_dispatch": {}
   },
- "permissions": {"contents": "read"},
+  "permissions": {"contents": "read"},
   "jobs": {
     "builder": {
       "name": "Builder-context",
