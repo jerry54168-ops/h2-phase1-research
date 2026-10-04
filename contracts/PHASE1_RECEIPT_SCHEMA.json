@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase 1 evidence only; no R4 interface change",
+  "type": "object",
+  "required": [
+    "receipt_kind",
+    "result",
+    "logical_context"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "receipt_kind": {
+      "enum": [
+        "SAME_PROCESS_RUNTIME",
+        "SYNTHETIC_ARTIFACT",
+        "ARTIFACT_VERIFICATION",
+        "TAMPER_REJECTION"
+      ]
+    },
+    "result": {
+      "type": "string"
+    },
+    "logical_context": {
+      "enum": [
+        "Builder-context",
+        "Reviewer-context",
+        "Validator-context"
+      ]
+    },
+    "observed": {
+      "type": "object",
+      "required": [
+        "process_id",
+        "psedition",
+        "powershell_version",
+        "framework_description",
+        "runtime_version",
+        "os_description",
+        "os_architecture",
+        "process_architecture",
+        "runner_os",
+        "runner_arch",
+        "runner_name",
+        "image_os",
+        "image_version"
+      ]
+    },
+    "expected": {
+      "type": "object"
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "run_attempt",
+        "job_id",
+        "workflow_ref",
+        "workflow_sha",
+        "repository",
+        "commit_sha",
+        "logical_context",
+        "check_run_id",
+        "observed_at_utc"
+      ]
+    },
+    "runtime_predicate": {
+      "type": "boolean"
+    },
+    "provider_context_predicate": {
+      "type": "boolean"
+    },
+    "same_process_evidence": {
+      "type": "boolean"
+    },
+    "independent_reviewer_governance": {
+      "type": "string"
+    },
+    "input_encoding": {
+      "type": "string"
+    },
+    "input_hex": {
+      "type": "string"
+    },
+    "input_bytes": {
+      "type": "integer"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "member_name": {
+      "type": "string"
+    },
+    "member_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "outer_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "outer_bytes": {
+      "type": "integer"
+    },
+    "accepted": {
+      "type": "boolean"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "expected_outer_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "observed_outer_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expected_member_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "observed_member_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "TAMPER_REJECTED": {
+      "type": "string"
+    },
+    "original_before_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "original_after_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "altered_copy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "receipt_kind": {
+          "const": "SAME_PROCESS_RUNTIME"
+        }
+      },
+      "required": [
+        "observed",
+        "expected",
+        "provider",
+        "runtime_predicate",
+        "provider_context_predicate",
+        "same_process_evidence",
+        "independent_reviewer_governance"
+      ]
+    },
+    {
+      "properties": {
+        "receipt_kind": {
+          "const": "SYNTHETIC_ARTIFACT"
+        }
+      },
+      "required": [
+        "input_encoding",
+        "input_hex",
+        "input_bytes",
+        "input_sha256",
+        "member_name",
+        "member_sha256",
+        "outer_sha256",
+        "outer_bytes"
+      ]
+    },
+    {
+      "properties": {
+        "receipt_kind": {
+          "const": "ARTIFACT_VERIFICATION"
+        }
+      },
+      "required": [
+        "accepted",
+        "reason",
+        "expected_outer_sha256",
+        "observed_outer_sha256",
+        "expected_member_sha256",
+        "observed_member_sha256"
+      ]
+    },
+    {
+      "properties": {
+        "receipt_kind": {
+          "const": "TAMPER_REJECTION"
+        }
+      },
+      "required": [
+        "TAMPER_REJECTED",
+        "original_before_sha256",
+        "original_after_sha256",
+        "altered_copy_sha256"
+      ]
+    }
+  ]
+}
