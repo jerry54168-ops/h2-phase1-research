@@ -1,0 +1,178 @@
+{
+  "name": "GH Phase1 derived execution candidate",
+  "on": {
+    "workflow_dispatch": {}
+  },
+  "permissions": {},
+  "jobs": {
+    "builder": {
+      "name": "Builder-context",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "env": {
+        "PHASE1_CONTEXT": "Builder-context"
+      },
+      "defaults": {
+        "run": {
+          "shell": "pwsh -NoLogo -NoProfile -NonInteractive -Command \". '{0}'\""
+        }
+      },
+      "steps": [
+        {
+          "name": "Future exact reviewed candidate source",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Same-process runtime receipt",
+          "run": "./scripts/Get-SameProcessRuntimeReceipt.ps1 -ExpectedBindingsPath ./contracts/PHASE1_EXPECTED_BINDINGS_TEMPLATE.json -OutputPath runtime.json"
+        },
+        {
+          "name": "Create exact synthetic artifact",
+          "run": "./scripts/New-SyntheticArtifact.ps1 -OutputDirectory synthetic"
+        },
+        {
+          "name": "Upload original Builder evidence",
+          "id": "builder_upload",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "phase1-builder-original",
+            "path": "synthetic/synthetic.zip\nsynthetic/artifact-receipt.json\nruntime.json",
+            "retention-days": 7
+          }
+        },
+        {
+          "name": "Record provider artifact metadata without API",
+          "run": "$r = @{ artifact_id = '${{ steps.builder_upload.outputs.artifact-id }}'; artifact_digest = '${{ steps.builder_upload.outputs.artifact-digest }}'; artifact_url = '${{ steps.builder_upload.outputs.artifact-url }}' }\nif ([string]::IsNullOrWhiteSpace($r.artifact_id)) { throw 'HOLD: provider artifact identity unavailable' }\n$r | ConvertTo-Json | Set-Content -LiteralPath artifact-provider.json -Encoding utf8"
+        },
+        {
+          "name": "Upload Builder provider artifact metadata",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "phase1-builder-provider-metadata",
+            "path": "artifact-provider.json",
+            "retention-days": 7
+          }
+        }
+      ]
+    },
+    "reviewer": {
+      "name": "Reviewer-context",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "env": {
+        "PHASE1_CONTEXT": "Reviewer-context"
+      },
+      "defaults": {
+        "run": {
+          "shell": "pwsh -NoLogo -NoProfile -NonInteractive -Command \". '{0}'\""
+        }
+      },
+      "steps": [
+        {
+          "name": "Future exact reviewed candidate source",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Same-process runtime receipt",
+          "run": "./scripts/Get-SameProcessRuntimeReceipt.ps1 -ExpectedBindingsPath ./contracts/PHASE1_EXPECTED_BINDINGS_TEMPLATE.json -OutputPath runtime.json"
+        },
+        {
+          "name": "Download original evidence into fresh context",
+          "uses": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "with": {
+            "name": "phase1-builder-original",
+            "path": "incoming"
+          }
+        },
+        {
+          "name": "Download provider artifact metadata",
+          "uses": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "with": {
+            "name": "phase1-builder-provider-metadata",
+            "path": "incoming-provider"
+          }
+        },
+        {
+          "name": "Verify exact bytes and hashes",
+          "run": "$r = ./scripts/Verify-SyntheticArtifact.ps1 -ZipPath incoming/synthetic/synthetic.zip -BuilderReceiptPath incoming/synthetic/artifact-receipt.json -OutputPath integrity.json -LogicalContext Reviewer-context\nif (-not $r.accepted) { throw 'HOLD: artifact mismatch' }"
+        },
+        {
+          "name": "Upload context evidence",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "phase1-reviewer-evidence",
+            "path": "runtime.json\nintegrity.json",
+            "retention-days": 7
+          }
+        }
+      ],
+      "needs": "builder"
+    },
+    "validator": {
+      "name": "Validator-context",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 10,
+      "env": {
+        "PHASE1_CONTEXT": "Validator-context"
+      },
+      "defaults": {
+        "run": {
+          "shell": "pwsh -NoLogo -NoProfile -NonInteractive -Command \". '{0}'\""
+        }
+      },
+      "steps": [
+        {
+          "name": "Future exact reviewed candidate source",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Same-process runtime receipt",
+          "run": "./scripts/Get-SameProcessRuntimeReceipt.ps1 -ExpectedBindingsPath ./contracts/PHASE1_EXPECTED_BINDINGS_TEMPLATE.json -OutputPath runtime.json"
+        },
+        {
+          "name": "Download original evidence into fresh context",
+          "uses": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "with": {
+            "name": "phase1-builder-original",
+            "path": "incoming"
+          }
+        },
+        {
+          "name": "Download provider artifact metadata",
+          "uses": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+          "with": {
+            "name": "phase1-builder-provider-metadata",
+            "path": "incoming-provider"
+          }
+        },
+        {
+          "name": "Verify exact bytes and hashes",
+          "run": "$r = ./scripts/Verify-SyntheticArtifact.ps1 -ZipPath incoming/synthetic/synthetic.zip -BuilderReceiptPath incoming/synthetic/artifact-receipt.json -OutputPath integrity.json -LogicalContext Validator-context\nif (-not $r.accepted) { throw 'HOLD: artifact mismatch' }"
+        },
+        {
+          "name": "Alter only fresh copy and require rejection",
+          "run": "./scripts/Verify-TamperRejection.ps1 -OriginalZipPath incoming/synthetic/synthetic.zip -BuilderReceiptPath incoming/synthetic/artifact-receipt.json -CopyPath altered-copy.zip -OutputPath tamper.json"
+        },
+        {
+          "name": "Upload context evidence",
+          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "with": {
+            "name": "phase1-validator-evidence",
+            "path": "runtime.json\nintegrity.json\ntamper.json*",
+            "retention-days": 7
+          }
+        }
+      ],
+      "needs": "builder"
+    }
+  }
+}
